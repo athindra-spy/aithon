@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MiniWellness 🌱</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      transition: background 1s ease;
+      background: #f0f0f0;
+    }
+    .container {
+      margin: 50px auto;
+      padding: 30px;
+      max-width: 500px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    h1, h2, h3 { margin-bottom: 20px; }
+    input, select, button {
+      margin: 10px;
+      padding: 10px;
+      width: 80%;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: 0.3s;
+    }
+    button:hover { background: #45a049; }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background: #e6ffe6;
+      border-radius: 10px;
+      animation: fadeIn 1s;
+    }
+    @keyframes fadeIn { from {opacity: 0;} to {opacity: 1;} }
+
+    /* Emoji animation */
+    .emoji {
+      font-size: 40px;
+      display: inline-block;
+      transition: transform 0.3s;
+    }
+    .emoji:hover {
+      transform: scale(1.2) rotate(10deg);
+    }
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+<div class="container" id="app">
+  <h1>MiniWellness 🌱</h1>
+  <div id="auth">
+    <h2>Login</h2>
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <p>No account? <a href="#" onclick="showSignup()">Sign Up</a></p>
+  </div>
+
+  <div id="signup" class="hidden">
+    <h2>Sign Up</h2>
+    <input id="newName" placeholder="Full Name">
+    <input id="newUser" placeholder="Username">
+    <input id="newPass" type="password" placeholder="Password">
+    <button onclick="signup()">Create Account</button>
+    <p>Already have an account? <a href="#" onclick="showLogin()">Login</a></p>
+  </div>
+
+  <div id="dashboard" class="hidden">
+    <h2>Hello, <span id="displayName"></span> 👋</h2>
+    <label>How do you feel today?</label><br>
+    <select id="moodSelect" onchange="changeBackground(this.value)">
+      <option value="happy">😊 Happy</option>
+      <option value="sad">😢 Sad</option>
+      <option value="angry">😡 Angry</option>
+      <option value="tired">🥱 Tired</option>
+      <option value="excited">🤩 Excited</option>
+    </select><br>
+    <button onclick="saveMood()">Save</button>
+    <div id="moodResult" class="result hidden"></div>
+    <button onclick="showHistory()">📜 View History</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <div id="history" class="hidden">
+    <h2>Your Mood History 📊</h2>
+    <table id="historyTable">
+      <tr><th>Date</th><th>Mood</th><th>Sentiment</th><th>Recommendations</th></tr>
+    </table>
+    <button onclick="backToDashboard()">Back</button>
+  </div>
+</div>
+
+<script>
+  // Store users & moods in localStorage
+  let currentUser = null;
+
+  function showSignup() {
+    document.getElementById("auth").classList.add("hidden");
+    document.getElementById("signup").classList.remove("hidden");
+  }
+  function showLogin() {
+    document.getElementById("signup").classList.add("hidden");
+    document.getElementById("auth").classList.remove("hidden");
+  }
+
+  function signup() {
+    let user = document.getElementById("newUser").value;
+    let pass = document.getElementById("newPass").value;
+    let name = document.getElementById("newName").value;
+    if(!user || !pass || !name) return alert("Fill all fields!");
+    let users = JSON.parse(localStorage.getItem("users") || "{}");
+    if(users[user]) return alert("User already exists!");
+    users[user] = {password: pass, name: name, moods: []};
+    localStorage.setItem("users", JSON.stringify(users));
+    alert("Account created! Please login.");
+    showLogin();
+  }
+
+  function login() {
+    let user = document.getElementById("username").value;
+    let pass = document.getElementById("password").value;
+    let users = JSON.parse(localStorage.getItem("users") || "{}");
+    if(users[user] && users[user].password === pass) {
+      currentUser = user;
+      document.getElementById("displayName").innerText = users[user].name;
+      document.getElementById("auth").classList.add("hidden");
+      document.getElementById("dashboard").classList.remove("hidden");
+    } else {
+      alert("Invalid login!");
+    }
+  }
+
+  function logout() {
+    currentUser = null;
+    document.getElementById("dashboard").classList.add("hidden");
+    document.getElementById("auth").classList.remove("hidden");
+  }
+
+  function changeBackground(mood) {
+    if(mood === "happy") document.body.style.background = "#ffe066";
+    else if(mood === "sad") document.body.style.background = "#a0c4ff";
+    else if(mood === "angry") document.body.style.background = "#ff6b6b";
+    else if(mood === "excited") document.body.style.background = "#d3f9d8";
+    else document.body.style.background = "#f0f0f0";
+  }
+
+  function analyzeMood(mood) {
+    if(["happy","excited","good"].includes(mood))
+      return {sentiment:"positive", recs:"💡 Try a workout, a hobby, or connect with friends!"};
+    if(["sad","angry","tired"].includes(mood))
+      return {sentiment:"negative", recs:"💡 Take it easy. Try meditation, music, or a short walk."};
+    return {sentiment:"neutral", recs:"💡 Keep balance. Maybe read or do light activity."};
+  }
+
+  function saveMood() {
+    let mood = document.getElementById("moodSelect").value;
+    let {sentiment, recs} = analyzeMood(mood);
+    let today = new Date().toISOString().split("T")[0];
+    let users = JSON.parse(localStorage.getItem("users") || "{}");
+    users[currentUser].moods.push({date: today, mood, sentiment, recs});
+    localStorage.setItem("users", JSON.stringify(users));
+
+    let result = document.getElementById("moodResult");
+    result.innerHTML = `<h3>Sentiment: ${sentiment}</h3><p>${recs}</p>`;
+    result.classList.remove("hidden");
+  }
+
+  function showHistory() {
+    let users = JSON.parse(localStorage.getItem("users") || "{}");
+    let moods = users[currentUser].moods || [];
+    let table = document.getElementById("historyTable");
+    table.innerHTML = "<tr><th>Date</th><th>Mood</th><th>Sentiment</th><th>Recommendations</th></tr>";
+    moods.forEach(m => {
+      table.innerHTML += `<tr><td>${m.date}</td><td>${m.mood}</td><td>${m.sentiment}</td><td>${m.recs}</td></tr>`;
+    });
+    document.getElementById("dashboard").classList.add("hidden");
+    document.getElementById("history").classList.remove("hidden");
+  }
+
+  function backToDashboard() {
+    document.getElementById("history").classList.add("hidden");
+    document.getElementById("dashboard").classList.remove("hidden");
+  }
+</script>
+</body>
+</html>
